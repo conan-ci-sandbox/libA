@@ -1,2 +1,2 @@
-demo-ci-conan :: libA
-=====================
+conan-ci-cd-training :: libA
+============================
