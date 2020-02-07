@@ -27,3 +27,4 @@ class LibA(ConanFile):
         self.cpp_info.libs = ["libA",]
 
 
+#new conanfile version for libA
