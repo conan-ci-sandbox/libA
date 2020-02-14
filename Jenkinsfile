@@ -154,7 +154,7 @@ pipeline {
     }
 
     stage("Trigger dependents jobs") {
-      // steps {
+       steps {
       //   script {
       //     assert reference_revision != null
       //     assert repository != null
@@ -174,7 +174,7 @@ pipeline {
       //       }]
       //     }
       //   }
-      // }
+       }
     }
   }
 }
