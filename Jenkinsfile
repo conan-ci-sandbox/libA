@@ -3,10 +3,6 @@ def user_channel = "mycompany/stable"
 def config_url = "https://github.com/conan-ci-cd-training/settings.git"
 def projects = line_split(readTrusted('dependent-projects.txt')).collect { "${it}@${user_channel}" } // TODO: Get list dynamically
 
-String reference_revision = null
-String repository = null
-String sha1 = null
-
 pipeline {
     agent { docker { image 'conanio/gcc8' } }
     stages {
