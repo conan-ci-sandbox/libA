@@ -30,8 +30,8 @@ def get_stages(id, docker_image, profile, user_channel, config_url, artifactory_
                                     sh "conan user -p ${ARTIFACTORY_PASSWORD} -r ${artifactory_develop_repo} ${ARTIFACTORY_USER}"
                                 }
                             }
-                            stage("Start build info: ${env.BUILD_NAME} ${env.BUILD_NUMBER}") {                                
-                                sh "conan_build_info --v2 start ${env.BUILD_NAME} ${env.BUILD_NUMBER}"
+                            stage("Start build info: ${env.JOB_NAME} ${env.BUILD_NUMBER}") {                                
+                                sh "conan_build_info --v2 start \"${env.JOB_NAME}\" \"${env.BUILD_NUMBER}\""
                             }
                             stage("Create package") {                                
                                 def lockfile = "${id}.lock"
