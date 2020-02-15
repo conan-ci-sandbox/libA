@@ -20,6 +20,7 @@ def get_stages(id, docker_image, profile, user_channel, config_url, artifactory_
                     def scmVars = checkout scm
                     def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                     withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
+                        def lockfile = "${id}.lock"
                         try {
                             stage("Configure Conan") {
                                 sh "printenv"
@@ -34,7 +35,6 @@ def get_stages(id, docker_image, profile, user_channel, config_url, artifactory_
                                 sh "conan_build_info --v2 start \"${env.JOB_NAME}\" \"${env.BUILD_NUMBER}\""
                             }
                             stage("Create package") {                                
-                                def lockfile = "${id}.lock"
                                 String arguments = "--profile ${profile} --lockfile=${lockfile}"
                                 sh "conan graph lock . ${arguments}"
                                 sh "conan create . ${user_channel} ${arguments} --build missing --ignore-dirty"
