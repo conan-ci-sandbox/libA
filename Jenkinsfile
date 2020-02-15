@@ -1,9 +1,11 @@
 pipeline {
     agent { docker { image 'conanio/gcc8' } }
     stages {
-        stage('build') {
+        stage('Build') {
             steps {
-                sh 'conan --version'
+                sh '''
+                    conan --version
+                '''
             }
         }
     }
