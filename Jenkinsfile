@@ -19,7 +19,7 @@ pipeline {
                         withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                                 sh '''
                                     conan --version
-                                    conan config install ${config_url}".toString()
+                                    conan config install ${config_url}
                                     pwd
                                     conan create . mycompany/stable --profile conanio-gcc8
                                     conan search
