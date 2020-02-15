@@ -23,7 +23,7 @@ pipeline {
                                     pwd
                                     conan create . mycompany/stable --profile conanio-gcc8
                                     conan search
-                                '''
+                                '''.toString()
                         }
                     }
                    finally {
