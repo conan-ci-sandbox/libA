@@ -33,6 +33,7 @@ def get_stages(id, docker_image, profile, user_channel, config_url, artifactory_
                                 sh "conan_build_info --v2 start ${env.BUILD_NAME} ${env.BUILD_NUMBER}"
                             }
                             stage("Create package") {                                
+                                def lockfile = "${id}.lock"
                                 String arguments = "--profile ${profile} --lockfile=${lockfile}"
                                 sh "conan graph lock . ${arguments}"
                                 sh "conan create . ${user_channel} ${arguments} --build missing --ignore-dirty"
