@@ -17,13 +17,13 @@ pipeline {
                         def scmVars = checkout scm
                         def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                         withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
-                                sh '''
-                                    conan --version
-                                    conan config install ${config_url}
-                                    pwd
-                                    conan create . mycompany/stable --profile conanio-gcc8
-                                    conan search
-                                '''.toString()
+                            sh "conan --version"
+                            sh "conan config install ${config_url}"
+                            sh '''
+                                pwd
+                                conan create . mycompany/stable --profile conanio-gcc8
+                                conan search
+                            '''
                         }
                     }
                    finally {
