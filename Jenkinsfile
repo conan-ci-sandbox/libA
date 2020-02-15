@@ -8,8 +8,8 @@ def config_url = "https://github.com/conan-ci-cd-training/settings.git"
 def projects = line_split(readTrusted('dependent-projects.txt')).collect { "${it}@${user_channel}" } // TODO: Get list dynamically
 
 def docker_runs = [:] 
-docker_runs["conanio-gcc8_temp"] = ["conanio/gcc8", "conanio-gcc8"]	
-docker_runs["conanio-gcc7_temp"] = ["conanio/gcc7", "conanio-gcc7"]
+docker_runs["conanio-gcc8"] = ["conanio/gcc8", "conanio-gcc8"]	
+//docker_runs["conanio-gcc7"] = ["conanio/gcc7", "conanio-gcc7"]
 
 def get_stages(id, docker_image, profile, user_channel, config_url) {
     return {
