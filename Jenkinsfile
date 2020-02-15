@@ -47,42 +47,40 @@ docker_runs.each { id, values ->
 
 pipeline {
   agent none
-  stages {
-    stage("Build + upload") {
-      steps {
-        script {
-          docker_runs = withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
-            parallel stages
-          }
+  stage("Build + upload") {
+    steps {
+      script {
+        docker_runs = withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
+          //parallel stages
         }
       }
     }
+  }
 
-    stage("Retrieve and publish build info") {
-      agent any
-      steps {
-        script {
-          echo("Retrieve and publish build info")
-        }
-      }
-      post {
-        always {
-          deleteDir()
-        }
+  stage("Retrieve and publish build info") {
+    agent any
+    steps {
+      script {
+        echo("Retrieve and publish build info")
       }
     }
-
-    stage("Trigger dependents jobs") {
-      agent any
-      steps {
-        script {
-          echo("Trigger dependents jobs")
-        }
+    post {
+      always {
+        deleteDir()
       }
-      post {
-        always {
-          deleteDir()
-        }
+    }
+  }
+
+  stage("Trigger dependents jobs") {
+    agent any
+    steps {
+      script {
+        echo("Trigger dependents jobs")
+      }
+    }
+    post {
+      always {
+        deleteDir()
       }
     }
   }
