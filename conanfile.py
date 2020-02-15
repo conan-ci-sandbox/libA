@@ -25,8 +25,3 @@ class LibA(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = ["libA",]
-
-
-#new conanfile version for libA
-#new commit for libA
-#new commit for libA
