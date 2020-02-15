@@ -67,13 +67,13 @@ pipeline {
                 }
             }
         }        
-        stage('Something') {
-            steps {
-                script {
-                    //docker.image("conanio/gcc8").inside("--net=host") {
-                    //}
-                }
-            }
-        }
+        // stage('Something') {
+        //     steps {
+        //         script {
+        //             //docker.image("conanio/gcc8").inside("--net=host") {
+        //             //}
+        //         }
+        //     }
+        // }
     }
 }
