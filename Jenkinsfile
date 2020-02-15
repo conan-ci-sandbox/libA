@@ -22,6 +22,7 @@ def get_stages(id, docker_image, profile, user_channel, config_url, artifactory_
                     withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                         try {
                             stage("Configure Conan") {
+                                sh "printenv"
                                 sh "conan --version"
                                 sh "conan config install ${config_url}"
                                 sh "conan remote add ${artifactory_develop_repo} http://${env.ARTIFACTORY_URL}/artifactory/api/conan/conan-develop"
