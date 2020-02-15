@@ -19,19 +19,20 @@ String sha1 = null
 
 def get_stages(id, docker_image, profile, user_channel, config_url) {
   return {
-    stage(id) 
-    node {
-        docker.image(docker_image).inside("--net=host") {
-        def scmVars = checkout scm
-        def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
-        withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
-          def remoteName = "conan-develop"
-          def lockfile = "${id}.lock"
-          try {
-            echo("running ${docker_image}")
-          }
-          finally {
-            deleteDir()
+    stage(id) {
+      node {
+          docker.image(docker_image).inside("--net=host") {
+          def scmVars = checkout scm
+          def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
+          withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
+            def remoteName = "conan-develop"
+            def lockfile = "${id}.lock"
+            try {
+              echo("running ${docker_image}")
+            }
+            finally {
+              deleteDir()
+            }
           }
         }
       }
