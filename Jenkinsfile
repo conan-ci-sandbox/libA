@@ -27,11 +27,10 @@ def get_stages(id, docker_image, profile, user_channel, config_url) {
                                 withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
                                     sh "conan user -p ${ARTIFACTORY_PASSWORD} -r artifactory-develop ${ARTIFACTORY_USER}"
                                 }
+                            }
+                            stage("Create package") {
                                 sh "conan create . ${user_channel} --profile conanio-gcc8"
                                 sh "conan upload '*' --all -r artifactory-develop --confirm  --force"
-                            }
-                            stage("${id}") {
-                                echo 'Running in ${docker_image}'
                             }
                             stage("Get dependencies and create app") {
                             }
