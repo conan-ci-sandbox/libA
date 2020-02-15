@@ -6,6 +6,7 @@ def organization = "conan-ci-cd-training"
 def user_channel = "mycompany/stable"
 def config_url = "https://github.com/conan-ci-cd-training/settings.git"
 def projects = line_split(readTrusted('dependent-projects.txt')).collect { "${it}@${user_channel}" } // TODO: Get list dynamically
+def artifactory_develop_repo = "artifactory-develop"
 
 def docker_runs = [:] 
 docker_runs["conanio-gcc8"] = ["conanio/gcc8", "conanio-gcc8"]	
@@ -23,22 +24,25 @@ def get_stages(id, docker_image, profile, user_channel, config_url) {
                             stage("Configure Conan") {
                                 sh "conan --version"
                                 sh "conan config install ${config_url}"
-                                sh "conan remote add artifactory-develop http://${env.ARTIFACTORY_URL}/artifactory/api/conan/conan-develop"
+                                sh "conan remote add ${artifactory_develop_repo} http://${env.ARTIFACTORY_URL}/artifactory/api/conan/conan-develop"
                                 withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
-                                    sh "conan user -p ${ARTIFACTORY_PASSWORD} -r artifactory-develop ${ARTIFACTORY_USER}"
+                                    sh "conan user -p ${ARTIFACTORY_PASSWORD} -r ${artifactory_develop_repo} ${ARTIFACTORY_USER}"
                                 }
                             }
-                            stage("Create package") {
-                                sh "conan create . ${user_channel} --profile conanio-gcc8"
-                                sh "conan upload '*' --all -r artifactory-develop --confirm  --force"
+                            stage("Start build info: ${env.BUILD_NAME} ${env.BUILD_NUMBER}") {                                
+                                sh "conan_build_info --v2 start ${env.BUILD_NAME} ${env.BUILD_NUMBER}"
                             }
-                            stage("Get dependencies and create app") {
+                            stage("Create package") {                                
+                                String arguments = "--profile ${profile} --lockfile=${lockfile}"
+                                sh "conan graph lock . ${arguments}"
+                                sh "conan create . ${user_channel} ${arguments} --build missing --ignore-dirty"
+                                sh "conan upload '*' --all -r ${artifactory_develop_repo} --confirm  --force"
                             }
-                            stage("Calculate full reference") {
-                            }
-                            stage("Upload packages") {
-                            }
-                            stage("Create build info") {
+                            stage("Create and publish build info") {
+                                def buildInfoFilename = "${id}.json"
+                                withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
+                                    sh "conan_build_info --v2 create --lockfile ${lockfile} --user \"\${CONAN_LOGIN_USERNAME}\" --password \"\${CONAN_PASSWORD}\" ${buildInfoFilename}"
+                                }
                             }
                         }
                         finally {
