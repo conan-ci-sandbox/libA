@@ -16,9 +16,19 @@ def get_stages(id, docker_image, profile, user_channel, config_url) {
         stage(id) {
             node {
                 docker.image(docker_image).inside("--net=host") {
+                    def scmVars = checkout scm
+                    def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                     withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                         try {
-                            stage("Start build info") {
+                            stage("Configure Conan") {
+                                sh "conan --version"
+                                sh "conan config install ${config_url}"
+                                sh "conan remote add artifactory-develop http://${env.ARTIFACTORY_URL}/artifactory/api/conan/conan-develop"
+                                withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
+                                    sh "conan user -p ${ARTIFACTORY_PASSWORD} -r artifactory-develop ${ARTIFACTORY_USER}"
+                                }
+                                sh "conan create . ${user_channel} --profile conanio-gcc8"
+                                sh "conan upload '*' --all -r artifactory-develop --confirm  --force"
                             }
                             stage("${id}") {
                                 echo 'Running in ${docker_image}'
@@ -37,7 +47,6 @@ def get_stages(id, docker_image, profile, user_channel, config_url) {
                         }
                     }
                 }
-                
             }
         }
     }
@@ -61,17 +70,8 @@ pipeline {
         stage('Something') {
             steps {
                 script {
-                    docker.image("conanio/gcc8").inside("--net=host") {
-                        def scmVars = checkout scm
-                        def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
-                        withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
-                            sh "conan --version"
-                            sh "conan config install ${config_url}"
-                            sh "pwd"
-                            sh "conan create . ${user_channel} --profile conanio-gcc8"
-                            sh "conan search"
-                        }
-                    }
+                    //docker.image("conanio/gcc8").inside("--net=host") {
+                    //}
                 }
             }
         }
