@@ -117,21 +117,21 @@ pipeline {
         // maybe if a new tag was created with the name release?
         stage('DEPLOY: Merge and publish build infos') {
             when { tag "release-*" } 
-            }
-            agent { docker "conanio/gcc8" } 
-            steps {
-            script {
-                    def last_info = ""
-                    docker_runs.each { id, buildInfo ->
-                        writeJSON file: "${id}.json", json: buildInfo
-                        if (last_info != "") {
-                            sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
+            docker.image("conanio-gcc8").inside("--net=host") {
+                steps {
+                script {
+                        def last_info = ""
+                        docker_runs.each { id, buildInfo ->
+                            writeJSON file: "${id}.json", json: buildInfo
+                            if (last_info != "") {
+                                sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
+                            }
+                            last_info = "${id}.json"
+                        }                    
+                        sh "cat mergedbuildinfo.json"
+                        withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
+                            sh "conan_build_info --v2 publish --url http://${env.ARTIFACTORY_URL}:8081/artifactory --user \"\${ARTIFACTORY_USER}\" --password \"\${ARTIFACTORY_PASSWORD}\" mergedbuildinfo.json"
                         }
-                        last_info = "${id}.json"
-                    }                    
-                    sh "cat mergedbuildinfo.json"
-                    withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
-                        sh "conan_build_info --v2 publish --url http://${env.ARTIFACTORY_URL}:8081/artifactory --user \"\${ARTIFACTORY_USER}\" --password \"\${ARTIFACTORY_PASSWORD}\" mergedbuildinfo.json"
                     }
                 }
             }
