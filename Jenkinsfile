@@ -95,7 +95,7 @@ pipeline {
                 }
             }
         }        
-        stage('Deploy') {
+        stage('Show build info') {
             script {
                 echo("PRINT BUILD INFOS")
                 docker_runs.each { id, buildInfo ->
