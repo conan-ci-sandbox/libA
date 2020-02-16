@@ -72,7 +72,7 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
 }
 
 pipeline {
-    agent none
+    agent any
     stages {
         stage('Build') {
             steps {
