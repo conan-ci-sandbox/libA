@@ -115,10 +115,10 @@ pipeline {
         // maybe just doing publishes an uploads if we are releasing something or doing a commit to master?
         // maybe if a new tag was created with the name release?
         stage('DEPLOY: Merge and publish build infos') {
-            agent { docker "conanio/gcc8" } 
-            steps {
-                script {
-                    if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
+            if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
+                agent { docker "conanio/gcc8" } 
+                steps {
+                    script {
                         def last_info = ""
                         docker_runs.each { id, buildInfo ->
                             writeJSON file: "${id}.json", json: buildInfo
