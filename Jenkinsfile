@@ -119,7 +119,7 @@ pipeline {
             when { tag "release-*" } 
             steps {
                 script {
-                   docker.image("conanio-gcc8").inside("--net=host") {
+                   docker.image("conanio/gcc8").inside("--net=host") {
                         def last_info = ""
                         docker_runs.each { id, buildInfo ->
                             writeJSON file: "${id}.json", json: buildInfo
