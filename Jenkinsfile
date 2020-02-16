@@ -88,6 +88,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
+                    // maybe you want to do different things depending if it is a PR or not?
                     echo("BRANCH NAME ---> ${env.BRANCH_NAME}")
                     if (env.BRANCH_NAME == 'master') {
                         echo("Maybe if the commit is to master we want to release a new version?")
