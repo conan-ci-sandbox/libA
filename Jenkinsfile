@@ -22,6 +22,8 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                     def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                     withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                         def lockfile = "${id}.lock"
+                        def buildInfoFilename = "${id}.json"
+                        def buildInfo = null
                         try {
                             stage("Configure Conan") {
                                 sh "printenv"
@@ -42,21 +44,22 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                                 sh "conan upload '*' --all -r ${conan_develop_repo} --confirm  --force"
                             }
                             stage("Create and publish build info") {
-                                def buildInfoFilename = "${id}.json"
                                 withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
                                     sh "conan_build_info --v2 create --lockfile ${lockfile} --user \"\${ARTIFACTORY_USER}\" --password \"\${ARTIFACTORY_PASSWORD}\" ${buildInfoFilename}"
-                                    sh "conan_build_info --v2 publish --url http://${env.ARTIFACTORY_URL}:8081/artifactory --user \"\${ARTIFACTORY_USER}\" --password \"\${ARTIFACTORY_PASSWORD}\" ${buildInfoFilename}"
+                                    buildInfo = readJSON(file: buildInfoFilename)
+                                    //sh "conan_build_info --v2 publish --url http://${env.ARTIFACTORY_URL}:8081/artifactory --user \"\${ARTIFACTORY_USER}\" --password \"\${ARTIFACTORY_PASSWORD}\" ${buildInfoFilename}"
                                 }
                             }
-                            stage("Upload lockfile") {
-                                name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
-                                version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()                                
-                                def lockfile_url = "http://${env.ARTIFACTORY_URL}:8081/artifactory/${artifactory_metadata_repo}/${name}/${version}@${user_channel}/${profile}/conan.lock"
-                                def lockfile_sha1 = sha1(file: lockfile)
-                                withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
-                                    sh "curl --user \"\${ARTIFACTORY_USER}\":\"\${ARTIFACTORY_PASSWORD}\" --header 'X-Checksum-Sha1:'${lockfile_sha1} --header 'Content-Type: application/json' ${lockfile_url} --upload-file ${lockfile}"
-                                }                                
-                            }
+                            // stage("Upload lockfile") {
+                            //     name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
+                            //     version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()                                
+                            //     def lockfile_url = "http://${env.ARTIFACTORY_URL}:8081/artifactory/${artifactory_metadata_repo}/${name}/${version}@${user_channel}/${profile}/conan.lock"
+                            //     def lockfile_sha1 = sha1(file: lockfile)
+                            //     withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
+                            //         sh "curl --user \"\${ARTIFACTORY_USER}\":\"\${ARTIFACTORY_PASSWORD}\" --header 'X-Checksum-Sha1:'${lockfile_sha1} --header 'Content-Type: application/json' ${lockfile_url} --upload-file ${lockfile}"
+                            //     }                                
+                            // }
+                            return buildInfo
                         }
                         finally {
                             deleteDir()
@@ -92,6 +95,16 @@ pipeline {
                 }
             }
         }        
+        stage('Deploy') {
+            script {
+                echo("PRINT BUILD INFOS")
+                docker_runs.each { id, buildInfo ->
+                    writeJSON file: "${id}.json", json: buildInfo
+                    sh "cat ${id}.json"
+                }                    
+            }
+        }
+
         stage('Deploy') {
             when { tag "release-*" }
             steps {
