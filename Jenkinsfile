@@ -117,9 +117,9 @@ pipeline {
         // maybe if a new tag was created with the name release?
         stage('DEPLOY: Merge and publish build infos') {
             when { tag "release-*" } 
-            docker.image("conanio-gcc8").inside("--net=host") {
-                steps {
+            steps {
                 script {
+                   docker.image("conanio-gcc8").inside("--net=host") {
                         def last_info = ""
                         docker_runs.each { id, buildInfo ->
                             writeJSON file: "${id}.json", json: buildInfo
