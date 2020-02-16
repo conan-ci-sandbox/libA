@@ -92,6 +92,12 @@ pipeline {
                 }
             }
         }        
+        stage('Deploy') {
+            when { tag "release-*" }
+            steps {
+                echo 'Deploying only because this commit is tagged...'
+            }
+        }
         // stage('Something') {
         //     steps {
         //         script {
