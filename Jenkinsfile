@@ -96,12 +96,14 @@ pipeline {
             }
         }        
         stage('Show build info') {
-            script {
-                echo("PRINT BUILD INFOS")
-                docker_runs.each { id, buildInfo ->
-                    writeJSON file: "${id}.json", json: buildInfo
-                    sh "cat ${id}.json"
-                }                    
+            steps {
+                script {
+                    echo("PRINT BUILD INFOS")
+                    docker_runs.each { id, buildInfo ->
+                        writeJSON file: "${id}.json", json: buildInfo
+                        sh "cat ${id}.json"
+                    }                    
+                }
             }
         }
 
