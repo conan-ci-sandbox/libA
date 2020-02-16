@@ -34,8 +34,8 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                                     sh "conan user -p ${ARTIFACTORY_PASSWORD} -r ${conan_develop_repo} ${ARTIFACTORY_USER}"
                                 }
                             }
-                            stage("Start build info: ${env.JOB_NAME} ${env.BUILD_NUMBER}") { 
-                                if (env.BRANCH_NAME == "master") {
+                            stage("DEPLOY: Start build info: ${env.JOB_NAME} ${env.BUILD_NUMBER}") { 
+                                if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
                                     sh "conan_build_info --v2 start \"${env.JOB_NAME}\" \"${env.BUILD_NUMBER}\""
                                 }
                             }
@@ -45,21 +45,21 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                                 sh "conan create . ${user_channel} ${arguments} --build missing --ignore-dirty"
                                 //sh "conan upload '*' --all -r ${conan_develop_repo} --confirm  --force"
                             }
-                            stage("Upload package") {                                
-                                if (env.BRANCH_NAME == "master") {
+                            stage("DEPLOY: Upload package") {                                
+                                if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
                                     sh "conan upload '*' --all -r ${conan_develop_repo} --confirm  --force"
                                 }
                             }
-                            stage("Create build info") {
-                                if (env.BRANCH_NAME == "master") {
+                            stage("DEPLOY: Create build info") {
+                                if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
                                     withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
                                         sh "conan_build_info --v2 create --lockfile ${lockfile} --user \"\${ARTIFACTORY_USER}\" --password \"\${ARTIFACTORY_PASSWORD}\" ${buildInfoFilename}"
                                         buildInfo = readJSON(file: buildInfoFilename)
                                     }
                                 }
                             }
-                            stage("Upload lockfile") {
-                                if (env.BRANCH_NAME == "master") {
+                            stage("DEPLOY: Upload lockfile") {
+                                if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
                                     name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
                                     version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()                                
                                     def lockfile_url = "http://${env.ARTIFACTORY_URL}:8081/artifactory/${artifactory_metadata_repo}/${name}/${version}@${user_channel}/${profile}/conan.lock"
@@ -69,7 +69,6 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                                     }                                
                                 }
                             }
-
                             return buildInfo
                         }
                         finally {
@@ -98,6 +97,12 @@ pipeline {
                     else {
                         echo("This is a not a PR branch, not to master")
                     }                             
+                    if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
+                        echo("This is a commit to master that is tagged with ${env.TAG_NAME}, so it's going to be deployed")
+                    }
+                    else {
+                        echo("The result of this commit won't be deployed")
+                    }
                     docker_runs = withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
                         parallel docker_runs.collectEntries { id, values ->
                           def (docker_image, profile) = values
@@ -109,40 +114,26 @@ pipeline {
         }
         // maybe just doing publishes an uploads if we are releasing something or doing a commit to master?
         // maybe if a new tag was created with the name release?
-        stage('Merge and publish build infos') {
-            when { branch 'master' }
+        stage('DEPLOY: Merge and publish build infos') {
             agent { docker "conanio/gcc8" } 
             steps {
                 script {
-                    def last_info = ""
-                    docker_runs.each { id, buildInfo ->
-                        writeJSON file: "${id}.json", json: buildInfo
-                        if (last_info != "") {
-                            sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
+                    if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
+                        def last_info = ""
+                        docker_runs.each { id, buildInfo ->
+                            writeJSON file: "${id}.json", json: buildInfo
+                            if (last_info != "") {
+                                sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
+                            }
+                            last_info = "${id}.json"
+                        }                    
+                        sh "cat mergedbuildinfo.json"
+                        withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
+                            sh "conan_build_info --v2 publish --url http://${env.ARTIFACTORY_URL}:8081/artifactory --user \"\${ARTIFACTORY_USER}\" --password \"\${ARTIFACTORY_PASSWORD}\" mergedbuildinfo.json"
                         }
-                        last_info = "${id}.json"
-                    }                    
-                    sh "cat mergedbuildinfo.json"
-                    withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
-                        sh "conan_build_info --v2 publish --url http://${env.ARTIFACTORY_URL}:8081/artifactory --user \"\${ARTIFACTORY_USER}\" --password \"\${ARTIFACTORY_PASSWORD}\" mergedbuildinfo.json"
                     }
                 }
             }
         }
-        stage('Deploy') {
-            when { tag "release-*" }
-            steps {
-                echo 'Deploying only because this commit is tagged...'
-            }
-        }
-        
-        // stage('Something') {
-        //     steps {
-        //         script {
-        //             //docker.image("conanio/gcc8").inside("--net=host") {
-        //             //}
-        //         }
-        //     }
-        // }
     }
 }
