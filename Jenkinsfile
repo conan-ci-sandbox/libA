@@ -2,6 +2,7 @@ ArrayList line_split(String text) {
   return text.split('\\r?\\n').findAll{it.size() > 0} as ArrayList
 }
 
+
 def organization = "conan-ci-cd-training"
 def user_channel = "mycompany/stable"
 def config_url = "https://github.com/conan-ci-cd-training/settings.git"
