@@ -20,6 +20,7 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                 docker.image(docker_image).inside("--net=host") {
                     def scmVars = checkout scm
                     def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
+                    echo("${scmVars}")
                     sh "printenv"
                     withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
                         def lockfile = "${id}.lock"
