@@ -112,7 +112,8 @@ pipeline {
                 }
             }
         }
-        // maybe just doing publishes an uploads if we are releasing something or doing a commit to master?
+        // maybe just doing publishes an uploads if we are releasing something
+        // or doing a commit to master?
         // maybe if a new tag was created with the name release?
         stage('DEPLOY: Merge and publish build infos') {
             when { 
