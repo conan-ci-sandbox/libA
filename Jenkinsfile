@@ -72,7 +72,7 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
 }
 
 pipeline {
-    agent any
+    agent none
     stages {
         stage('Build') {
             steps {
@@ -96,6 +96,7 @@ pipeline {
             }
         }        
         stage('Show build info') {
+            agent { docker "conanio/gcc8" } 
             steps {
                 script {
                     echo("PRINT BUILD INFOS")
