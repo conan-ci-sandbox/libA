@@ -110,8 +110,8 @@ pipeline {
         // maybe if a new tag was created with the name release?
         stage('Merge and publish build infos') {
             when { branch 'master' }
+            agent { docker "conanio/gcc8" } 
             steps {
-                agent { docker "conanio/gcc8" } 
                 script {
                     def last_info = ""
                     docker_runs.each { id, buildInfo ->
