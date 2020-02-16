@@ -2,7 +2,6 @@ ArrayList line_split(String text) {
   return text.split('\\r?\\n').findAll{it.size() > 0} as ArrayList
 }
 
-
 def organization = "conan-ci-cd-training"
 def user_channel = "mycompany/stable"
 def config_url = "https://github.com/conan-ci-cd-training/settings.git"
@@ -36,7 +35,7 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                                 }
                             }
                             stage("DEPLOY: Start build info: ${env.JOB_NAME} ${env.BUILD_NUMBER}") { 
-                                if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
+                                if (env.TAG_NAME ==~ /release.*/) {
                                     sh "conan_build_info --v2 start \"${env.JOB_NAME}\" \"${env.BUILD_NUMBER}\""
                                 }
                             }
@@ -47,12 +46,12 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                                 //sh "conan upload '*' --all -r ${conan_develop_repo} --confirm  --force"
                             }
                             stage("DEPLOY: Upload package") {                                
-                                if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
+                                if (env.TAG_NAME ==~ /release.*/) {
                                     sh "conan upload '*' --all -r ${conan_develop_repo} --confirm  --force"
                                 }
                             }
                             stage("DEPLOY: Create build info") {
-                                if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
+                                if (env.TAG_NAME ==~ /release.*/) {
                                     withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
                                         sh "conan_build_info --v2 create --lockfile ${lockfile} --user \"\${ARTIFACTORY_USER}\" --password \"\${ARTIFACTORY_PASSWORD}\" ${buildInfoFilename}"
                                         buildInfo = readJSON(file: buildInfoFilename)
@@ -60,7 +59,7 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                                 }
                             }
                             stage("DEPLOY: Upload lockfile") {
-                                if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
+                                if (env.TAG_NAME ==~ /release.*/) {
                                     name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
                                     version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()                                
                                     def lockfile_url = "http://${env.ARTIFACTORY_URL}:8081/artifactory/${artifactory_metadata_repo}/${name}/${version}@${user_channel}/${profile}/conan.lock"
@@ -98,7 +97,7 @@ pipeline {
                     else {
                         echo("This is a not a PR branch, not to master")
                     }                             
-                    if (env.BRANCH_NAME == "master" && env.TAG_NAME ==~ /release.*/) {
+                    if (env.TAG_NAME ==~ /release.*/) {
                         echo("This is a commit to master that is tagged with ${env.TAG_NAME}, so it's going to be deployed")
                     }
                     else {
@@ -117,11 +116,7 @@ pipeline {
         // or doing a commit to master?
         // maybe if a new tag was created with the name release?
         stage('DEPLOY: Merge and publish build infos') {
-            when { 
-                allOf {
-                    tag "release-*"
-                    branch "master" 
-                } 
+            when { tag "release-*" } 
             }
             agent { docker "conanio/gcc8" } 
             steps {
