@@ -11,7 +11,8 @@ def artifactory_metadata_repo = "conan-develop-metadata"
 
 String reference_revision = null
 String repository = null
-String sha1 = null
+String name = null
+String version = null
 
 def docker_runs = [:] 
 docker_runs["conanio-gcc8"] = ["conanio/gcc8", "conanio-gcc8"]	
@@ -49,16 +50,20 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                                 sh "conan graph lock . ${arguments}"
                                 sh "conan create . ${user_channel} ${arguments} --build missing --ignore-dirty"
                                 //sh "conan upload '*' --all -r ${conan_develop_repo} --confirm  --force"
+                                name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
+                                version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()                                
                             }
                             stage("Get created package revision") {
                                 // this is some kind of workaround, we have just created the package in the local cache
                                 // and search for the package using --revisions to get the revision of the package
                                 // write the search to a json file and stash the file to get it after all the builds
                                 // have finished to pass it to the dependant projects pipeline
-                                def search_output = "search_output.json"
-                                sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
-                                sh "cat ${search_output}"
-                                stash name: 'full_reference', includes: 'search_output.json'
+                                if (id=="conanio-gcc8") { //FIX THIS: get just for one of the profiles the revision is the same for all
+                                    def search_output = "search_output.json"
+                                    sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
+                                    sh "cat ${search_output}"
+                                    stash name: 'full_reference', includes: 'search_output.json'
+                                }
                             }
                             stage("DEPLOY: Upload package") {                                
                                 if (env.BRANCH_NAME == "master") {
@@ -75,8 +80,6 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                             }
                             stage("DEPLOY: Upload lockfile") {
                                 if (env.BRANCH_NAME == "master") {
-                                    name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
-                                    version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()                                
                                     def lockfile_url = "http://${env.ARTIFACTORY_URL}:8081/artifactory/${artifactory_metadata_repo}/${name}/${version}@${user_channel}/${profile}/conan.lock"
                                     def lockfile_sha1 = sha1(file: lockfile)
                                     withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
