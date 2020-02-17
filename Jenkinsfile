@@ -154,7 +154,7 @@ pipeline {
                     echo "Full reference: '${reference}'"
                     parallel projects.collectEntries {project_id -> 
                         ["${project_id}": {
-                            build(job: "../jenkins/master", propagate: true, parameters: [
+                            build(job: "${currentBuild.fullProjectName.tokenize('/')[0]}/jenkins/master", propagate: true, parameters: [
                                 [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
                                 [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
                                 [$class: 'StringParameterValue', name: 'organization', value: organization],
