@@ -142,6 +142,7 @@ pipeline {
             }
         }
 
+        when { branch "master" } 
         stage("Trigger dependents jobs") {
             agent any
             steps {
