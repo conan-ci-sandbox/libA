@@ -127,5 +127,17 @@ pipeline {
                 }
             }
         }
+
+        stage("Trigger dependents jobs") {
+            steps {
+                script {
+                    parallel projects.collectEntries {project_id -> 
+                        ["${project_id}": {
+                            build(job: "${currentBuild.fullProjectName.tokenize('/')[0]}/jenkins/master", propagate: true)
+                        }]
+                    }
+                }
+            }
+        }
     }
 }
