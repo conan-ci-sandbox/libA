@@ -9,6 +9,10 @@ def projects = line_split(readTrusted('dependent-projects.txt')).collect { "${it
 def conan_develop_repo = "artifactory-develop"
 def artifactory_metadata_repo = "conan-develop-metadata"
 
+String reference_revision = null
+String repository = null
+String sha1 = null
+
 def docker_runs = [:] 
 docker_runs["conanio-gcc8"] = ["conanio/gcc8", "conanio-gcc8"]	
 docker_runs["conanio-gcc7"] = ["conanio/gcc7", "conanio-gcc7"]
@@ -45,6 +49,15 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                                 sh "conan graph lock . ${arguments}"
                                 sh "conan create . ${user_channel} ${arguments} --build missing --ignore-dirty"
                                 //sh "conan upload '*' --all -r ${conan_develop_repo} --confirm  --force"
+                            }
+                            stage("Get created package revision") {
+                                // this is some kind of workaround, we have just created the package in the local cache
+                                // and search for the package using --revisions to get the revision of the package
+                                // write the search to a json file and stash the file to get it after all the builds
+                                // have finished to pass it to the dependant projects pipeline
+                                def search_output = "search_output.json"
+                                sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
+                                stash name: 'full_reference', includes: 'search_output.json'
                             }
                             stage("DEPLOY: Upload package") {                                
                                 if (env.BRANCH_NAME == "master") {
@@ -131,9 +144,22 @@ pipeline {
         stage("Trigger dependents jobs") {
             steps {
                 script {
+                    unstash 'full_reference'
+                    def props = readJSON file: "search_output.json"
+                    reference_revision = props[0]['revision']
+                    assert reference_revision != null
+                    assert repository != null
+                    assert sha1 != null
+                    def reference = "${name}/${version}@${user_channel}#${reference_revision}"
+                    echo "Full reference: '${reference}'"
                     parallel projects.collectEntries {project_id -> 
                         ["${project_id}": {
-                            build(job: "../jenkins/master", propagate: true)
+                            build(job: "../jenkins/master", propagate: true, parameters: [
+                                [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
+                                [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
+                                [$class: 'StringParameterValue', name: 'organization', value: organization],
+                                [$class: 'StringParameterValue', name: 'repository',   value: repository  ],
+                            ])
                         }]
                     }
                 }
