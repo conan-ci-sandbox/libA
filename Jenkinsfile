@@ -57,6 +57,7 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                                 // have finished to pass it to the dependant projects pipeline
                                 def search_output = "search_output.json"
                                 sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
+                                sh "cat ${search_output}"
                                 stash name: 'full_reference', includes: 'search_output.json'
                             }
                             stage("DEPLOY: Upload package") {                                
@@ -149,7 +150,6 @@ pipeline {
                     reference_revision = props[0]['revision']
                     assert reference_revision != null
                     assert repository != null
-                    assert sha1 != null
                     def reference = "${name}/${version}@${user_channel}#${reference_revision}"
                     echo "Full reference: '${reference}'"
                     parallel projects.collectEntries {project_id -> 
