@@ -10,8 +10,6 @@ def conan_develop_repo = "artifactory-develop"
 def artifactory_metadata_repo = "conan-develop-metadata"
 
 String reference_revision = null
-String name = null
-String version = null
 
 def docker_runs = [:] 
 docker_runs["conanio-gcc8"] = ["conanio/gcc8", "conanio-gcc8"]	
