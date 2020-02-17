@@ -10,7 +10,6 @@ def conan_develop_repo = "artifactory-develop"
 def artifactory_metadata_repo = "conan-develop-metadata"
 
 String reference_revision = null
-String repository = null
 String name = null
 String version = null
 
@@ -24,7 +23,7 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
             node {
                 docker.image(docker_image).inside("--net=host") {
                     def scmVars = checkout scm
-                    repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
+                    def repository = scmVars.GIT_URL.tokenize('/')[3].split("\\.")[0]
                     echo("${scmVars}")
                     sh "printenv"
                     withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
@@ -153,7 +152,6 @@ pipeline {
                     def props = readJSON file: "search_output.json"
                     reference_revision = props[0]['revision']
                     assert reference_revision != null
-                    assert repository != null
                     def reference = "${name}/${version}@${user_channel}#${reference_revision}"
                     echo "Full reference: '${reference}'"
                     parallel projects.collectEntries {project_id -> 
@@ -162,7 +160,6 @@ pipeline {
                                 [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
                                 [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
                                 [$class: 'StringParameterValue', name: 'organization', value: organization],
-                                [$class: 'StringParameterValue', name: 'repository',   value: repository  ],
                             ])
                         }]
                     }
