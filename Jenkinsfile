@@ -88,6 +88,7 @@ pipeline {
         stage('Build') {
             steps {
                 script {
+                    echo("${currentBuild.fullProjectName.tokenize('/')[0]}")
                     // maybe you want to do different things depending if it is a PR or not?
                     echo("Commit made to ${env.BRANCH_NAME} branch")
                     if (env.TAG_NAME ==~ /release.*/) {
