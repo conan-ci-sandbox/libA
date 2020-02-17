@@ -146,6 +146,7 @@ pipeline {
         }
 
         stage("Trigger dependents jobs") {
+            agent any
             steps {
                 script {
                     unstash 'full_reference'
