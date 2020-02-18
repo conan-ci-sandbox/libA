@@ -49,6 +49,16 @@ def get_stages(id, docker_image, profile, user_channel, config_url, conan_develo
                                 sh "conan create . ${user_channel} ${arguments} --build missing --ignore-dirty"
                                 name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
                                 version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()                                
+                                // this is some kind of workaround, we have just created the package in the local cache
+                                // and search for the package using --revisions to get the revision of the package
+                                // write the search to a json file and stash the file to get it after all the builds
+                                // have finished to pass it to the dependant projects pipeline
+                                if (id=="conanio-gcc8") { //FIX THIS: get just for one of the profiles the revision is the same for all
+                                    def search_output = "search_output.json"
+                                    sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
+                                    sh "cat ${search_output}"
+                                    stash name: 'full_reference', includes: 'search_output.json'
+                                }
                             }
                             stage("Test things") {
                                 echo("tests OK!")
@@ -132,7 +142,11 @@ pipeline {
             agent any
             steps {
                 script {
-                    def reference = "${name}/${version}"
+                    unstash 'full_reference'
+                    def props = readJSON file: "search_output.json"
+                    reference_revision = props[0]['revision']
+                    assert reference_revision != null
+                    def reference = "${name}/${version}@${user_channel}#${reference_revision}"
                     parallel projects.collectEntries {project_id -> 
                         ["${project_id}": {
                             build(job: "${currentBuild.fullProjectName.tokenize('/')[0]}/jenkins/master", propagate: true, parameters: [
