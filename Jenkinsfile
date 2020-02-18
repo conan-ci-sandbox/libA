@@ -132,14 +132,16 @@ pipeline {
             agent any
             steps {
                 script {
-                    def reference = "${name}/${version}@${user_channel}#${reference_revision}"
+                    def reference = "${name}/${version}"
                     parallel projects.collectEntries {project_id -> 
                         ["${project_id}": {
                             build(job: "${currentBuild.fullProjectName.tokenize('/')[0]}/jenkins/master", propagate: true, parameters: [
                                 [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
                                 [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
                                 [$class: 'StringParameterValue', name: 'organization', value: organization],
-                            ])
+                                [$class: 'StringParameterValue', name: 'build_name', value: env.JOB_NAME],
+                                [$class: 'StringParameterValue', name: 'build_number', value: env.BUILD_NUMBER],
+                            ]) 
                         }]
                     }
                 }
