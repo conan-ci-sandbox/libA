@@ -16,7 +16,7 @@ def docker_runs = [:]
 docker_runs["conanio-gcc8"] = ["conanio/gcc8", "conanio-gcc8"]	
 docker_runs["conanio-gcc7"] = ["conanio/gcc7", "conanio-gcc7"]
 
-def get_stages(id, docker_image, profile, user_channel, config_url, conan_develop_repo, artifactory_metadata_repo) {
+def get_stages(id, docker_image, profile, user_channel, config_url, conan_develop_repo, conan_build_repo, artifactory_metadata_repo) {
     return {
         stage(id) {
             node {
@@ -98,7 +98,7 @@ pipeline {
                     docker_runs = withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
                         parallel docker_runs.collectEntries { id, values ->
                           def (docker_image, profile) = values
-                            ["${id}": get_stages(id, docker_image, profile, user_channel, config_url, conan_develop_repo, artifactory_metadata_repo)]
+                            ["${id}": get_stages(id, docker_image, profile, user_channel, config_url, conan_develop_repo, conan_build_repo, artifactory_metadata_repo)]
                         }
                     }
                 }
