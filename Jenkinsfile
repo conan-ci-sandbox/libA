@@ -21,7 +21,7 @@ def build_result = [:]
 
 def get_stages(profile, docker_image, user_channel, config_url, conan_develop_repo, conan_tmp_repo, artifactory_metadata_repo) {
     return {
-        stage(id) {
+        stage(profile) {
             node {
                 docker.image(docker_image).inside("--net=host") {
                     def scmVars = checkout scm
@@ -29,8 +29,8 @@ def get_stages(profile, docker_image, user_channel, config_url, conan_develop_re
                     echo("${scmVars}")
                     sh "printenv"
                     withEnv(["CONAN_USER_HOME=${env.WORKSPACE}/conan_cache"]) {
-                        def lockfile = "${id}.lock"
-                        def buildInfoFilename = "${id}.json"
+                        def lockfile = "${profile}.lock"
+                        def buildInfoFilename = "${profile}.json"
                         def buildInfo = null
                         try {
                             stage("Configure Conan") {
@@ -57,7 +57,7 @@ def get_stages(profile, docker_image, user_channel, config_url, conan_develop_re
                                 // and search for the package using --revisions to get the revision of the package
                                 // write the search to a json file and stash the file to get it after all the builds
                                 // have finished to pass it to the dependant projects pipeline
-                                if (id=="conanio-gcc8") { //FIX THIS: get just for one of the profiles the revision is the same for all
+                                if (profile=="conanio-gcc8") { //FIX THIS: get just for one of the profiles the revision is the same for all
                                     def search_output = "search_output.json"
                                     sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
                                     sh "cat ${search_output}"
