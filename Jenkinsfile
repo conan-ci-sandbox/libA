@@ -12,11 +12,14 @@ def artifactory_metadata_repo = "conan-develop-metadata"
 
 String reference_revision = null
 
-def docker_runs = [:] 
-docker_runs["conanio-gcc8"] = ["conanio/gcc8", "conanio-gcc8"]	
-docker_runs["conanio-gcc7"] = ["conanio/gcc7", "conanio-gcc7"]
+def profiles = [
+  "conanio-gcc8": "conanio/gcc8",	
+  "conanio-gcc7": "conanio/gcc7"	
+]
 
-def get_stages(id, docker_image, profile, user_channel, config_url, conan_develop_repo, conan_tmp_repo, artifactory_metadata_repo) {
+def build_result = [:]
+
+def get_stages(profile, docker_image, user_channel, config_url, conan_develop_repo, conan_tmp_repo, artifactory_metadata_repo) {
     return {
         stage(id) {
             node {
@@ -110,10 +113,9 @@ pipeline {
                     if (env.TAG_NAME ==~ /release.*/) {
                         echo("This is a commit to master that is tagged with ${env.TAG_NAME}")
                     }
-                    docker_runs = withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
-                        parallel docker_runs.collectEntries { id, values ->
-                          def (docker_image, profile) = values
-                            ["${id}": get_stages(id, docker_image, profile, user_channel, config_url, conan_develop_repo, conan_tmp_repo, artifactory_metadata_repo)]
+                    build_result = withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
+                        parallel profiles.collectEntries { profile, docker_image ->
+                            ["${profile}": get_stages(profile, docker_image, user_channel, config_url, conan_develop_repo, conan_tmp_repo, artifactory_metadata_repo)]
                         }
                     }
                 }
@@ -127,12 +129,12 @@ pipeline {
                 script {
                    docker.image("conanio/gcc8").inside("--net=host") {
                         def last_info = ""
-                        docker_runs.each { id, buildInfo ->
-                            writeJSON file: "${id}.json", json: buildInfo
+                        build_result.each { profile, buildInfo ->
+                            writeJSON file: "${profile}.json", json: buildInfo
                             if (last_info != "") {
-                                sh "conan_build_info --v2 update ${id}.json ${last_info} --output-file mergedbuildinfo.json"
+                                sh "conan_build_info --v2 update ${profile}.json ${last_info} --output-file mergedbuildinfo.json"
                             }
-                            last_info = "${id}.json"
+                            last_info = "${profile}.json"
                         }                    
                         sh "cat mergedbuildinfo.json"
                         withCredentials([usernamePassword(credentialsId: 'artifactory-credentials', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
