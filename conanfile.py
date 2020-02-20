@@ -11,7 +11,7 @@ class LibA(ConanFile):
     generators = "cmake"
 
     scm = {"type": "git",
-           "url": "auto",
+           "url": "https://github.com/conan-ci-cd-training/libA.git",
            "revision": "auto"}
 
     def build(self):
