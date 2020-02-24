@@ -10,7 +10,7 @@ def conan_develop_repo = "conan-develop"
 def conan_tmp_repo = "conan-tmp"
 def artifactory_metadata_repo = "conan-develop-metadata"
 
-def artifactory_url = "${env.ARTIFACTORY_URL}" ?: "jfrog.local"
+def artifactory_url = (env.ARTIFACTORY_URL != null) ? "${env.ARTIFACTORY_URL}" : "jfrog.local"
 
 String reference_revision = null
 
