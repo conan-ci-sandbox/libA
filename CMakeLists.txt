@@ -1,13 +1,6 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(conan-ci-cd-training)
 
-message("|-----------------------------------------|")
-message("|-----------------------------------------|")
-message("|----------------BUILDING-----------------|")
-message("|------------------libA-------------------|")
-message("|-----------------------------------------|")
-message("|-----------------------------------------|")
-
 include(${CMAKE_CURRENT_BINARY_DIR}/conanbuildinfo.cmake)
 conan_basic_setup(TARGETS)
 
