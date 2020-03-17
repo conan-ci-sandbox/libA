@@ -74,6 +74,7 @@ def get_stages(profile, docker_image, user_channel, config_url, conan_develop_re
                                     // if (env.BRANCH_NAME=="master") { //FIXME: should be done in the end promoting or when all configs are built
                                     //     sh "conan upload '*' --all -r ${conan_develop_repo} --confirm  --force"
                                     // }
+                                }
                             }
                             stage("Create build info") {
                                 withCredentials([usernamePassword(credentialsId: 'artifactory', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
