@@ -16,7 +16,7 @@ def profiles = [
 
 def build_result = [:]
 
-def get_stages(profile, docker_image, user_channel, config_url, conan_develop_repo, conan_tmp_repo, artifactory_metadata_repo, dependent_projects, artifactory_url) {
+def get_stages(profile, docker_image, user_channel, config_url, conan_develop_repo, conan_tmp_repo, artifactory_metadata_repo, artifactory_url) {
     return {
         stage(profile) {
             node {
@@ -112,7 +112,7 @@ pipeline {
                     echo("${currentBuild.fullProjectName.tokenize('/')[0]}")
                     build_result = withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
                         parallel profiles.collectEntries { profile, docker_image ->
-                            ["${profile}": get_stages(profile, docker_image, user_channel, config_url, conan_develop_repo, conan_tmp_repo, artifactory_metadata_repo, dependent_projects, artifactory_url)]
+                            ["${profile}": get_stages(profile, docker_image, user_channel, config_url, conan_develop_repo, conan_tmp_repo, artifactory_metadata_repo, artifactory_url)]
                         }
                     }
                 }
@@ -153,19 +153,14 @@ pipeline {
                         assert reference_revision != null
                         def reference = "${name}/${version}@${user_channel}#${reference_revision}"
                         def scmVars = checkout scm
-                        parallel dependent_projects.collectEntries {project_id -> 
-                            ["${project_id}": {
-                                build(job: "${currentBuild.fullProjectName.tokenize('/')[0]}/jenkins/master", propagate: true, parameters: [
-                                    [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
-                                    [$class: 'StringParameterValue', name: 'project_id',   value: project_id  ],
-                                    [$class: 'StringParameterValue', name: 'organization', value: organization],
-                                    [$class: 'StringParameterValue', name: 'build_name', value: env.JOB_NAME],
-                                    [$class: 'StringParameterValue', name: 'build_number', value: env.BUILD_NUMBER],
-                                    [$class: 'StringParameterValue', name: 'commit_number', value: scmVars.GIT_COMMIT],
-                                    [$class: 'StringParameterValue', name: 'library_branch', value: env.BRANCH_NAME],
-                                ]) 
-                            }]
-                        }
+                        build(job: "${currentBuild.fullProjectName.tokenize('/')[0]}/jenkins/master", propagate: true, parameters: [
+                            [$class: 'StringParameterValue', name: 'reference',    value: reference   ],
+                            [$class: 'StringParameterValue', name: 'organization', value: organization],
+                            [$class: 'StringParameterValue', name: 'build_name', value: env.JOB_NAME],
+                            [$class: 'StringParameterValue', name: 'build_number', value: env.BUILD_NUMBER],
+                            [$class: 'StringParameterValue', name: 'commit_number', value: scmVars.GIT_COMMIT],
+                            [$class: 'StringParameterValue', name: 'library_branch', value: env.BRANCH_NAME],
+                        ]) 
                     }
                 }
             }
