@@ -121,32 +121,32 @@ pipeline {
         // maybe just doing publishes an uploads if we are releasing something
         // or doing a commit to master?
         // maybe if a new tag was created with the name release?
-        stage("Merge and publish build infos") {
-            steps {
-                script {
-                   docker.image("conanio/gcc8").inside("--net=host") {
-                        def last_info = ""
-                        build_result.each { profile, buildInfo ->
-                            writeJSON file: "${profile}.json", json: buildInfo
-                            if (last_info != "") {
-                                sh "conan_build_info --v2 update ${profile}.json ${last_info} --output-file mergedbuildinfo.json"
+        if (branch_name =~ ".*PR.*" || env.BRANCH_NAME == "master") {
+            stage("Merge and publish build infos") {
+                steps {
+                    script {
+                    docker.image("conanio/gcc8").inside("--net=host") {
+                            def last_info = ""
+                            build_result.each { profile, buildInfo ->
+                                writeJSON file: "${profile}.json", json: buildInfo
+                                if (last_info != "") {
+                                    sh "conan_build_info --v2 update ${profile}.json ${last_info} --output-file mergedbuildinfo.json"
+                                }
+                                last_info = "${profile}.json"
+                            }                    
+                            sh "cat mergedbuildinfo.json"
+                            withCredentials([usernamePassword(credentialsId: 'artifactory', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
+                                sh "conan_build_info --v2 publish --url http://${artifactory_url}:8081/artifactory --user \"\${ARTIFACTORY_USER}\" --password \"\${ARTIFACTORY_PASSWORD}\" mergedbuildinfo.json"
                             }
-                            last_info = "${profile}.json"
-                        }                    
-                        sh "cat mergedbuildinfo.json"
-                        withCredentials([usernamePassword(credentialsId: 'artifactory', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
-                            sh "conan_build_info --v2 publish --url http://${artifactory_url}:8081/artifactory --user \"\${ARTIFACTORY_USER}\" --password \"\${ARTIFACTORY_PASSWORD}\" mergedbuildinfo.json"
                         }
                     }
                 }
             }
-        }
 
-        stage("Trigger products build") {
-            agent any
-            steps {
-                script {
-                    if (branch_name =~ ".*PR.*" || env.BRANCH_NAME == "master") {
+            stage("Trigger products build") {
+                agent any
+                steps {
+                    script {
                         unstash 'full_reference'
                         def props = readJSON file: "search_output.json"
                         reference_revision = props[0]['revision']
@@ -161,6 +161,7 @@ pipeline {
                             [$class: 'StringParameterValue', name: 'commit_number', value: scmVars.GIT_COMMIT],
                             [$class: 'StringParameterValue', name: 'library_branch', value: env.BRANCH_NAME],
                         ]) 
+                        
                     }
                 }
             }
