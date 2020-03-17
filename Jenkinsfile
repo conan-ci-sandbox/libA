@@ -1,11 +1,6 @@
-ArrayList line_split(String text) {
-  return text.split('\\r?\\n').findAll{it.size() > 0} as ArrayList
-}
-
 def organization = "conan-ci-cd-training"
 def user_channel = "mycompany/stable"
 def config_url = "https://github.com/conan-ci-cd-training/settings.git"
-def dependent_projects = line_split(readTrusted('dependent-projects.txt')).collect { "${it}@${user_channel}" } // TODO: Get list dynamically
 def conan_develop_repo = "conan-develop"
 def conan_tmp_repo = "conan-tmp"
 def artifactory_metadata_repo = "conan-develop-metadata"
@@ -51,14 +46,14 @@ def get_stages(profile, docker_image, user_channel, config_url, conan_develop_re
                             stage("Create package") {                                
                                 sh "conan graph lock . --profile ${profile} --lockfile=${lockfile}"
                                 sh "cat ${lockfile}"
-                                sh "conan create . ${user_channel} --profile ${profile} --lockfile=${lockfile} --build missing --ignore-dirty"
+                                sh "conan create . ${user_channel} --profile ${profile} --lockfile=${lockfile} -r ${conan_develop_repo}"
                                 sh "cat ${lockfile}"
                                 name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
                                 version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()                                
                                 // this is some kind of workaround, we have just created the package in the local cache
                                 // and search for the package using --revisions to get the revision of the package
                                 // write the search to a json file and stash the file to get it after all the builds
-                                // have finished to pass it to the dependant projects pipeline
+                                // have finished to pass it to the products projects pipeline
                                 if (profile=="conanio-gcc8") { //FIX THIS: get just for one of the profiles the revision is the same for all
                                     def search_output = "search_output.json"
                                     sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
@@ -69,11 +64,16 @@ def get_stages(profile, docker_image, user_channel, config_url, conan_develop_re
                             stage("Test things") {
                                 echo("tests OK!")
                             }
-                            stage("Upload package") {                                
-                                sh "conan upload '*' --all -r ${conan_tmp_repo} --confirm  --force"
-                                if (dependent_projects.isEmpty() && env.BRANCH_NAME=="master") { //FIXME: should be done in the end promoting or when all configs are built
-                                    sh "conan upload '*' --all -r ${conan_develop_repo} --confirm  --force"
-                                }
+                            stage("Upload package") {
+                                // we upload the package in case it's a PR or a commit to master to pass the new package
+                                // to the prduct's pipeline           
+                                if (branch_name =~ ".*PR.*" || env.BRANCH_NAME == "master") {                     
+                                    sh "conan upload '*' --all -r ${conan_tmp_repo} --confirm  --force"
+                                    // NOTE: This step probably should be done in the products pipeline
+                                    //       if we find that the package does not depend on any product
+                                    // if (env.BRANCH_NAME=="master") { //FIXME: should be done in the end promoting or when all configs are built
+                                    //     sh "conan upload '*' --all -r ${conan_develop_repo} --confirm  --force"
+                                    // }
                             }
                             stage("Create build info") {
                                 withCredentials([usernamePassword(credentialsId: 'artifactory', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
@@ -109,11 +109,6 @@ pipeline {
             steps {
                 script {
                     echo("${currentBuild.fullProjectName.tokenize('/')[0]}")
-                    // maybe you want to do different things depending if it is a PR or not?
-                    echo("Commit made to ${env.BRANCH_NAME} branch")
-                    if (env.TAG_NAME ==~ /release.*/) {
-                        echo("This is a commit to master that is tagged with ${env.TAG_NAME}")
-                    }
                     build_result = withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
                         parallel profiles.collectEntries { profile, docker_image ->
                             ["${profile}": get_stages(profile, docker_image, user_channel, config_url, conan_develop_repo, conan_tmp_repo, artifactory_metadata_repo, dependent_projects, artifactory_url)]
@@ -146,11 +141,11 @@ pipeline {
             }
         }
 
-        stage("Trigger dependents jobs") {
+        stage("Trigger products build") {
             agent any
             steps {
                 script {
-                    if (!dependent_projects.isEmpty()) {
+                    if (branch_name =~ ".*PR.*" || env.BRANCH_NAME == "master") {
                         unstash 'full_reference'
                         def props = readJSON file: "search_output.json"
                         reference_revision = props[0]['revision']
