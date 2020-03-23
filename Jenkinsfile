@@ -155,7 +155,7 @@ pipeline {
                     assert reference_revision != null
                     def reference = "${name}/${version}@${user_channel}#${reference_revision}"
                     def scmVars = checkout scm
-                    build(job: "${currentBuild.fullProjectName.tokenize('/')[0]}/jenkins/master", propagate: true, parameters: [
+                    build(job: "../products/master", propagate: true, parameters: [
                         [$class: 'StringParameterValue', name: 'reference', value: reference],
                         [$class: 'StringParameterValue', name: 'organization', value: organization],
                         [$class: 'StringParameterValue', name: 'build_name', value: env.JOB_NAME],
