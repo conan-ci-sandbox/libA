@@ -64,14 +64,14 @@ def get_stages(profile, docker_image, user_channel, config_url, conan_develop_re
                             stage("Test things") {
                                 echo("tests OK!")
                             }
-                            if (branch_name =~ ".*PR.*" || env.BRANCH_NAME == "master") {                     
+                            if (branch_name =~ ".*PR.*" || env.BRANCH_NAME == "develop") {                     
                                 stage("Upload package") {
-                                    // we upload the package in case it's a PR or a commit to master to pass the new package
+                                    // we upload the package in case it's a PR or a commit to develop to pass the new package
                                     // to the prduct's pipeline           
                                         sh "conan upload '*' --all -r ${conan_tmp_repo} --confirm  --force"
                                         // NOTE: This step probably should be done in the products pipeline
                                         //       if we find that the package does not depend on any product
-                                        // if (env.BRANCH_NAME=="master") { //FIXME: should be done in the end promoting or when all configs are built
+                                        // if (env.BRANCH_NAME=="develop") { //FIXME: should be done in the end promoting or when all configs are built
                                         //     sh "conan upload '*' --all -r ${conan_develop_repo} --confirm  --force"
                                         // }
                                 }
@@ -83,7 +83,7 @@ def get_stages(profile, docker_image, user_channel, config_url, conan_develop_re
                                 }
                             } 
                             // stage("Upload lockfile") {
-                            //     if (env.BRANCH_NAME == "master") {
+                            //     if (env.BRANCH_NAME == "develop") {
                             //         def lockfile_url = "http://${artifactory_url}:8081/artifactory/${artifactory_metadata_repo}/${name}/${version}@${user_channel}/${profile}/conan.lock"
                             //         def lockfile_sha1 = sha1(file: lockfile)
                             //         withCredentials([usernamePassword(credentialsId: 'artifactory', usernameVariable: 'ARTIFACTORY_USER', passwordVariable: 'ARTIFACTORY_PASSWORD')]) {
@@ -121,12 +121,12 @@ pipeline {
         }
 
         // maybe just doing publishes an uploads if we are releasing something
-        // or doing a commit to master?
+        // or doing a commit to develop?
         // maybe if a new tag was created with the name release?
         stage("Merge and publish build infos") {
             steps {
                 script {
-                if (branch_name =~ ".*PR.*" || env.BRANCH_NAME == "master") {
+                if (branch_name =~ ".*PR.*" || env.BRANCH_NAME == "develop") {
                     docker.image("conanio/gcc8").inside("--net=host") {
                             def last_info = ""
                             build_result.each { profile, buildInfo ->
@@ -150,7 +150,7 @@ pipeline {
             agent any
             steps {
                 script {
-                    //if (branch_name =~ ".*PR.*" || env.BRANCH_NAME == "master") {
+                    //if (branch_name =~ ".*PR.*" || env.BRANCH_NAME == "develop") {
                         unstash 'full_reference'
                         def props = readJSON file: "search_output.json"
                         reference_revision = props[0]['revision']
