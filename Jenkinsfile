@@ -115,18 +115,8 @@ pipeline {
                             ["${profile}": get_stages(profile, docker_image, user_channel, config_url, conan_develop_repo, conan_tmp_repo, artifactory_metadata_repo, artifactory_url, create_build_info)]
                         }
                     }
-                }
-            }
-        }
 
-        // maybe just doing publishes an uploads if we are releasing something
-        // or doing a commit to develop?
-        // maybe if a new tag was created with the name release?
-        
-        steps {
-            script {
-                if (create_build_info) {
-                    stage("Merge and publish build infos") {
+                    if (create_build_info) {
                         if (branch_name =~ ".*PR.*" || env.BRANCH_NAME == "develop") {
                             docker.image("conanio/gcc6").inside("--net=host") {
                                 def last_info = ""
@@ -143,13 +133,15 @@ pipeline {
                                 }
                             }
                         }
-                    }
+                    }                    
                 }
-            } 
+            }
         }
-    
 
-        stage("Trigger products build") {
+        // maybe just doing publishes an uploads if we are releasing something
+        // or doing a commit to develop?
+        // maybe if a new tag was created with the name release?
+        stage("Trigger products pipeline") {
             agent any
             steps {
                 script {
