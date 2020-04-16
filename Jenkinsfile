@@ -52,22 +52,17 @@ def get_stages(profile, docker_image, user_channel, config_url, conan_develop_re
                                 sh "cat ${lockfile}"
                                 sh "conan create . ${user_channel} --profile ${profile} --lockfile=${lockfile} -r ${conan_develop_repo} --ignore-dirty"
                                 sh "cat ${lockfile}"
+                            }
+
+                            stage("Get current package revision") {       
                                 name = sh (script: "conan inspect . --raw name", returnStdout: true).trim()
                                 version = sh (script: "conan inspect . --raw version", returnStdout: true).trim()                                
-                                // this is some kind of workaround, we have just created the package in the local cache
-                                // and search for the package using --revisions to get the revision of the package
-                                // write the search to a json file and stash the file to get it after all the builds
-                                // have finished to pass it to the products projects pipeline
-                                if (profile=="debug-gcc6") { //FIX THIS: get just for one of the profiles the revision is the same for all
-                                    def search_output = "search_output.json"
-                                    sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
-                                    sh "cat ${search_output}"
-                                    stash name: 'full_reference', includes: 'search_output.json'
-                                }
+                                def search_output = "search_output.json"
+                                sh "conan search ${name}/${version}@${user_channel} --revisions --raw --json=${search_output}"
+                                sh "cat ${search_output}"
+                                stash name: 'full_reference', includes: 'search_output.json'
                             }
-                            stage("Test things") {
-                                echo("tests OK!")
-                            }
+
                             if (branch_name =~ ".*PR.*" || env.BRANCH_NAME == "develop") {                     
                                 stage("Upload package") {
                                     sh "conan upload '*' --all -r ${conan_tmp_repo} --confirm  --force"
