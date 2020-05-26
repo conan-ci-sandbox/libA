@@ -75,6 +75,7 @@ def get_stages(profile, docker_image) {
                                     }
                                 }
                             } 
+
                             stage("Upload lockfile") {
                                 if (env.BRANCH_NAME == "develop") {
                                     def lockfile_url = "http://${artifactory_url}:8081/artifactory/${artifactory_metadata_repo}/${env.JOB_NAME}/${env.BUILD_NUMBER}/${name}/${version}@${user_channel}/${profile}/conan.lock"
