@@ -144,9 +144,6 @@ pipeline {
                     def scmVars = checkout scm
                     build(job: "../products/master", propagate: true, parameters: [
                         [$class: 'StringParameterValue', name: 'reference', value: reference],
-                        [$class: 'StringParameterValue', name: 'build_name', value: env.JOB_NAME],
-                        [$class: 'StringParameterValue', name: 'build_number', value: env.BUILD_NUMBER],
-                        [$class: 'StringParameterValue', name: 'commit_number', value: scmVars.GIT_COMMIT],
                         [$class: 'StringParameterValue', name: 'library_branch', value: env.BRANCH_NAME],
                     ]) 
                 }
