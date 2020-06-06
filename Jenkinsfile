@@ -89,6 +89,12 @@ pipeline {
         stage('Build') {
             steps {
                 script {
+                    if (params.size()>0) {
+                        params.each { lock_name, lock_content ->
+                            echo "${lock_name}"
+                            echo "${lock_content}"
+                       }
+                    }
                     withEnv(["CONAN_HOOK_ERROR_LEVEL=40"]) {
                         parallel profiles.collectEntries { profile, docker_image ->
                             ["${profile}": get_stages(profile, docker_image)]
